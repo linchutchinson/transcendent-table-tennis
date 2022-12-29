@@ -13,3 +13,4 @@ client = { path = "../client" }
 server = { path = "../server", optional = true }
 
 macroquad = "0.3"
+legion = "0.4"
