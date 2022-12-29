@@ -1,0 +1,15 @@
+[package]
+name = "plato"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["singleplayer"]
+singleplayer = ["dep:server"]
+
+[dependencies]
+common = { path = "../common" }
+client = { path = "../client" }
+server = { path = "../server", optional = true }
+
+macroquad = "0.3"
