@@ -2,7 +2,7 @@ mod ui;
 
 use legion::*;
 use macroquad::prelude::*;
-use ui::{add_ui_systems_to_schedule, UIContainer, UIRoot, UISize};
+use ui::{add_ui_systems_to_schedule, Label, UIConstraint, UIContainer, UIRoot, UISize};
 
 #[macroquad::main("Transcendent Table Tennis")]
 async fn main() {
@@ -12,31 +12,55 @@ async fn main() {
 
     let mut root_container = UIContainer::empty();
 
-    let c1 = world.push((Rect::new(10.0, 10.0, 20.0, 20.0), UISize::Constant(128.0)));
+    let c1 = world.push((
+        Rect::new(10.0, 10.0, 20.0, 20.0),
+        UISize::Grow(1),
+        Label::new("Transcendent Table Tennis".to_string(), 32.0),
+    ));
 
     let mut child_container = UIContainer::empty();
 
-    let cc1 = world.push((Rect::new(200.0, 20.0, 10.0, 100.0), UISize::Constant(32.0)));
-    let cc2 = world.push((Rect::new(200.0, 20.0, 10.0, 100.0), UISize::Grow(1)));
-    let cc3 = world.push((Rect::new(200.0, 20.0, 10.0, 100.0), UISize::Constant(16.0)));
+    let cc1 = world.push((Rect::new(200.0, 20.0, 10.0, 100.0), UISize::Grow(1)));
+
+    let mut button_container = UIContainer::empty();
+
+    let spacer_1 = world.push((UISize::Grow(1), ()));
+
+    let button_width = 256.0;
+    let play_button = world.push((
+        UISize::Grow(1),
+        UIConstraint::width_constraint(button_width),
+    ));
+    let quit_button = world.push((
+        UISize::Grow(1),
+        UIConstraint::width_constraint(button_width),
+    ));
+    let spacer_2 = world.push((UISize::Grow(1), ()));
+
+    button_container.add_child(spacer_1);
+    button_container.add_child(play_button);
+    button_container.add_child(quit_button);
+    button_container.add_child(spacer_2);
+
+    let button_section = world.push((
+        Rect::new(200.0, 20.0, 10.0, 100.0),
+        UISize::Grow(2),
+        button_container,
+    ));
+    let cc3 = world.push((Rect::new(200.0, 20.0, 10.0, 100.0), UISize::Grow(2)));
 
     child_container.add_child(cc1);
-    child_container.add_child(cc2);
+    child_container.add_child(button_section);
     child_container.add_child(cc3);
 
     let c2 = world.push((
         Rect::new(200.0, 20.0, 10.0, 100.0),
-        UISize::Grow(3),
+        UISize::Grow(9),
         child_container,
     ));
 
-    let c3 = world.push((Rect::new(200.0, 20.0, 10.0, 100.0), UISize::Grow(1)));
-    let c4 = world.push((Rect::new(10.0, 300.0, 400.0, 18.0), UISize::Constant(64.0)));
-
     root_container.add_child(c1);
     root_container.add_child(c2);
-    root_container.add_child(c3);
-    root_container.add_child(c4);
 
     world.push((UIRoot, root_container, Rect::new(0.0, 0.0, 0.0, 0.0)));
     loop {
