@@ -2,7 +2,10 @@ mod ui;
 
 use legion::*;
 use macroquad::prelude::*;
-use ui::{add_ui_systems_to_schedule, Label, UIConstraint, UIContainer, UIRoot, UISize};
+use ui::{
+    add_ui_systems_to_schedule, spawn_button, Button, Label, Text, UIConstraint, UIContainer,
+    UIRoot, UISize,
+};
 
 #[macroquad::main("Transcendent Table Tennis")]
 async fn main() {
@@ -26,15 +29,8 @@ async fn main() {
 
     let spacer_1 = world.push((UISize::Grow(1), ()));
 
-    let button_width = 256.0;
-    let play_button = world.push((
-        UISize::Grow(1),
-        UIConstraint::width_constraint(button_width),
-    ));
-    let quit_button = world.push((
-        UISize::Grow(1),
-        UIConstraint::width_constraint(button_width),
-    ));
+    let play_button = spawn_button(&mut world, "Play");
+    let quit_button = spawn_button(&mut world, "Quit");
     let spacer_2 = world.push((UISize::Grow(1), ()));
 
     button_container.add_child(spacer_1);

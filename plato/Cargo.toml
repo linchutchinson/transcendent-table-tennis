@@ -6,6 +6,7 @@ edition = "2021"
 [features]
 default = ["singleplayer"]
 singleplayer = ["dep:server"]
+debug_ui = []
 
 [dependencies]
 common = { path = "../common" }

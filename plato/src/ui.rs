@@ -4,8 +4,8 @@ use legion::{
     *,
 };
 use macroquad::{
-    prelude::{Color, Rect, RED, WHITE},
-    shapes::draw_rectangle_lines,
+    prelude::{Color, Rect, BLUE, RED, WHITE},
+    shapes::{draw_rectangle, draw_rectangle_lines},
     text::{draw_text, measure_text},
     window::{screen_height, screen_width},
 };
@@ -59,6 +59,10 @@ pub struct Label {
     font_size: f32,
 }
 
+pub struct Button;
+
+pub struct Text(pub String);
+
 impl Label {
     pub fn new(text: String, font_size: f32) -> Self {
         Self { text, font_size }
@@ -70,9 +74,14 @@ pub fn add_ui_systems_to_schedule(builder: &mut Builder) {
         .add_system(size_ui_root_system())
         .flush()
         .add_system(layout_ui_system())
-        .flush()
-        .add_thread_local(debug_rect_draw_system())
+        .flush();
+
+    #[cfg(feature = "debug_ui")]
+    builder.add_thread_local(debug_rect_draw_system());
+
+    builder
         .add_thread_local(draw_labels_system())
+        .add_thread_local(draw_buttons_system())
         .flush();
 }
 
@@ -163,9 +172,9 @@ fn calculate_and_apply_child_ui_sizes(
                 };
 
                 if let Some(width) = max_width {
-                    println!("Constraining to {width} from {initial_width}!");
                     let constrained_width = initial_width.min(width);
-                    let centered_x = inner_rect.x + (inner_rect.w * 0.5) - (constrained_width * 0.5);
+                    let centered_x =
+                        inner_rect.x + (inner_rect.w * 0.5) - (constrained_width * 0.5);
                     (centered_x, constrained_width)
                 } else {
                     (inner_rect.x, initial_width)
@@ -189,6 +198,7 @@ fn calculate_and_apply_child_ui_sizes(
         });
 }
 
+#[cfg(feature = "debug-ui")]
 #[system(for_each)]
 fn debug_rect_draw(rect: &Rect) {
     draw_rectangle_lines(rect.x, rect.y, rect.w, rect.h, 2.0, RED);
@@ -209,4 +219,23 @@ fn draw_centered_text(rect: &Rect, text: &str, font_size: f32) {
     };
 
     draw_text(text, x, y, font_size, WHITE);
+}
+
+#[system(for_each)]
+fn draw_buttons(rect: &Rect, _: &Button, text: Option<&Text>) {
+    draw_rectangle(rect.x, rect.y, rect.w, rect.h, BLUE);
+
+    if let Some(t) = text {
+        draw_centered_text(rect, &t.0, 32.0);
+    }
+}
+
+pub fn spawn_button(ecs: &mut World, label: &str) -> Entity {
+    const BUTTON_WIDTH: f32 = 256.0;
+    ecs.push((
+        UISize::Grow(1),
+        UIConstraint::width_constraint(BUTTON_WIDTH),
+        Button,
+        Text(label.to_string()),
+    ))
 }
