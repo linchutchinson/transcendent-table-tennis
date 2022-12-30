@@ -5,13 +5,16 @@ use legion::{
 };
 use macroquad::{
     prelude::{
-        is_mouse_button_down, is_mouse_button_pressed, mouse_position, Color, Rect, Vec2, BLACK,
-        BLUE, DARKBLUE, GREEN, ORANGE, RED, WHITE,
+        is_mouse_button_down, is_mouse_button_pressed, mouse_position, Color, Rect, Vec2,
+        BLUE, DARKBLUE, WHITE,
     },
-    shapes::{draw_line, draw_rectangle, draw_rectangle_lines, draw_circle},
+    shapes::{draw_line, draw_rectangle, draw_circle},
     text::{draw_text, measure_text},
     window::{screen_height, screen_width},
 };
+
+#[cfg(feature = "debug_ui")]
+use macroquad::{shapes::draw_rectangle_lines, prelude::RED};
 
 /// The root rect that contains all further UI Containers
 /// for a layout. Used in conjunction with UIContainer and
@@ -167,11 +170,10 @@ fn calculate_and_apply_child_ui_sizes(
     let (constant_used_space, flex_units): (f32, usize) =
         size_info
             .iter()
-            .fold((0.0, 0), |acc, (s, constraint)| match s {
+            .fold((0.0, 0), |acc, (s, _)| match s {
                 //TODO: When vertical constraints are implemented they have to be taken into account here.
                 UISize::Constant(s) => (acc.0 + *s, acc.1),
                 UISize::Grow(units) => (acc.0, acc.1 + *units),
-                _ => acc,
             });
 
     let inner_rect = Rect::new(
@@ -226,7 +228,7 @@ fn calculate_and_apply_child_ui_sizes(
         });
 }
 
-#[cfg(feature = "debug-ui")]
+#[cfg(feature = "debug_ui")]
 #[system(for_each)]
 fn debug_rect_draw(rect: &Rect) {
     draw_rectangle_lines(rect.x, rect.y, rect.w, rect.h, 2.0, RED);
