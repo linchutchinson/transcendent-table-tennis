@@ -2,10 +2,7 @@ mod ui;
 
 use legion::*;
 use macroquad::prelude::*;
-use ui::{
-    add_ui_systems_to_schedule, spawn_button, Button, Label, Text, UIConstraint, UIContainer,
-    UIRoot, UISize,
-};
+use ui::{add_ui_systems_to_schedule, spawn_button, Label, UIContainer, UIRoot, UISize};
 
 #[macroquad::main("Transcendent Table Tennis")]
 async fn main() {

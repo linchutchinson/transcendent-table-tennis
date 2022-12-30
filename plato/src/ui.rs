@@ -4,8 +4,11 @@ use legion::{
     *,
 };
 use macroquad::{
-    prelude::{Color, Rect, BLUE, RED, WHITE},
-    shapes::{draw_rectangle, draw_rectangle_lines},
+    prelude::{
+        is_mouse_button_down, is_mouse_button_pressed, mouse_position, Color, Rect, Vec2, BLACK,
+        BLUE, DARKBLUE, GREEN, ORANGE, RED, WHITE,
+    },
+    shapes::{draw_line, draw_rectangle, draw_rectangle_lines, draw_circle},
     text::{draw_text, measure_text},
     window::{screen_height, screen_width},
 };
@@ -59,7 +62,30 @@ pub struct Label {
     font_size: f32,
 }
 
-pub struct Button;
+struct Button {
+    state: UIState,
+    transition: f32,
+    click_pos: Vec2,
+    click_effect_progress: f32,
+}
+
+impl Button {
+    fn new() -> Self {
+        Self {
+            state: UIState::Normal,
+            transition: 0.0,
+            click_pos: Vec2::ZERO,
+            click_effect_progress: 1.0,
+        }
+    }
+}
+
+#[derive(PartialEq)]
+enum UIState {
+    Normal,
+    Hover,
+    Click,
+}
 
 pub struct Text(pub String);
 
@@ -74,6 +100,8 @@ pub fn add_ui_systems_to_schedule(builder: &mut Builder) {
         .add_system(size_ui_root_system())
         .flush()
         .add_system(layout_ui_system())
+        .flush()
+        .add_system(update_button_state_system())
         .flush();
 
     #[cfg(feature = "debug_ui")]
@@ -222,12 +250,87 @@ fn draw_centered_text(rect: &Rect, text: &str, font_size: f32) {
 }
 
 #[system(for_each)]
-fn draw_buttons(rect: &Rect, _: &Button, text: Option<&Text>) {
+fn update_button_state(rect: &Rect, button: &mut Button) {
+    let mouse_pos = mouse_position();
+
+    if is_mouse_button_down(macroquad::prelude::MouseButton::Left) && button.state == UIState::Click
+    {
+        // Don't change state.
+    } else {
+        if rect.contains(Vec2::new(mouse_pos.0, mouse_pos.1)) {
+            if is_mouse_button_pressed(macroquad::prelude::MouseButton::Left) {
+                button.state = UIState::Click;
+                button.click_pos = Vec2::new(mouse_pos.0, mouse_pos.1);
+                button.click_effect_progress = 0.0;
+            } else {
+                button.state = UIState::Hover;
+            }
+        } else {
+            button.state = UIState::Normal;
+        }
+    }
+
+    const TRANSITION_SPEED: f32 = 0.05;
+    match button.state {
+        UIState::Normal => {
+            button.transition = (button.transition - TRANSITION_SPEED).max(0.0);
+        }
+        UIState::Hover | UIState::Click => {
+            button.transition = (button.transition + TRANSITION_SPEED).min(1.0);
+        }
+    }
+
+    const CLICK_EFFECT_SPEED: f32 = 0.05;
+    button.click_effect_progress = (button.click_effect_progress + CLICK_EFFECT_SPEED).min(1.0);
+}
+
+#[system(for_each)]
+fn draw_buttons(rect: &Rect, button: &Button, text: Option<&Text>) {
     draw_rectangle(rect.x, rect.y, rect.w, rect.h, BLUE);
+
+    let overlay_width = rect.w * ease_in_out_sine(button.transition);
+    draw_rectangle(rect.x, rect.y, overlay_width, rect.h, DARKBLUE);
+
+    let line_spacing = rect.h / 10.0;
+    let top_line_y = rect.y + line_spacing;
+    let bottom_line_y = rect.y + rect.h - line_spacing;
+
+    draw_line(
+        rect.x,
+        top_line_y,
+        rect.x + overlay_width,
+        top_line_y,
+        2.0,
+        BLUE,
+    );
+    draw_line(
+        rect.x,
+        bottom_line_y,
+        rect.x + overlay_width,
+        bottom_line_y,
+        2.0,
+        BLUE,
+    );
 
     if let Some(t) = text {
         draw_centered_text(rect, &t.0, 32.0);
     }
+
+    if button.state == UIState::Hover || button.state == UIState::Click {
+        let mouse_pos = mouse_position();
+
+        //TODO: Figure out how to do this with shaders so it cuts out past the button's rect.
+        let mouse_hover_circle_radius = 64.0;
+        draw_circle(mouse_pos.0, mouse_pos.1, mouse_hover_circle_radius, Color::new(0.0, 0.0, 0.0, 0.05));
+        draw_circle(mouse_pos.0, mouse_pos.1, mouse_hover_circle_radius * 0.5, Color::new(0.0, 0.0, 0.0, 0.05));
+        draw_circle(mouse_pos.0, mouse_pos.1, mouse_hover_circle_radius * 0.25, Color::new(0.0, 0.0, 0.0, 0.05));
+    }
+
+    let click_effect_alpha = 1.0 - ease_in_out_sine(button.click_effect_progress);
+    let click_effect_color = Color::new(0.0, 0.0, 0.7, click_effect_alpha);
+    let click_effect_radius = ease_in_out_sine(button.click_effect_progress) * 64.0;
+
+    draw_circle(button.click_pos.x, button.click_pos.y, click_effect_radius, click_effect_color);
 }
 
 pub fn spawn_button(ecs: &mut World, label: &str) -> Entity {
@@ -235,7 +338,12 @@ pub fn spawn_button(ecs: &mut World, label: &str) -> Entity {
     ecs.push((
         UISize::Grow(1),
         UIConstraint::width_constraint(BUTTON_WIDTH),
-        Button,
+        Button::new(),
         Text(label.to_string()),
+        UIState::Normal,
     ))
+}
+
+fn ease_in_out_sine(x: f32) -> f32 {
+    -((std::f32::consts::PI * x).cos() - 1.0) / 2.0
 }
