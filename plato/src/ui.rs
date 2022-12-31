@@ -15,7 +15,10 @@ use macroquad::{
 #[cfg(feature = "debug_ui")]
 use macroquad::{prelude::RED, shapes::draw_rectangle_lines};
 
-use crate::{app_state::AppState, input::{MousePosition, Input, MouseButton}};
+use crate::{
+    app_state::AppState,
+    input::{Input, MouseButton, MousePosition},
+};
 
 /// The root rect that contains all further UI Containers
 /// for a layout. Used in conjunction with UIContainer and
@@ -254,9 +257,13 @@ fn draw_centered_text(rect: &Rect, text: &str, font_size: f32) {
 }
 
 #[system(for_each)]
-fn update_button_state(rect: &Rect, button: &mut Button, #[resource] mouse_pos: &MousePosition, #[resource] mouse_btns: &Input<MouseButton>) {
-    if mouse_btns.is_pressed(MouseButton::Left) && button.state == UIState::Click
-    {
+fn update_button_state(
+    rect: &Rect,
+    button: &mut Button,
+    #[resource] mouse_pos: &MousePosition,
+    #[resource] mouse_btns: &Input<MouseButton>,
+) {
+    if mouse_btns.is_pressed(MouseButton::Left) && button.state == UIState::Click {
         // Don't change state.
     } else {
         if rect.contains(Vec2::new(mouse_pos.0.x, mouse_pos.0.y)) {
@@ -380,8 +387,7 @@ fn handle_button_clicked(
     #[resource] mouse_pos: &MousePosition,
     #[resource] mouse_btns: &Input<MouseButton>,
 ) {
-    if mouse_btns.is_just_pressed(MouseButton::Left) && rect.contains(mouse_pos.0)
-    {
+    if mouse_btns.is_just_pressed(MouseButton::Left) && rect.contains(mouse_pos.0) {
         *app_state = AppState::Quit;
     }
 }
