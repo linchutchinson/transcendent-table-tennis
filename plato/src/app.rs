@@ -8,12 +8,12 @@ use macroquad::{
 };
 
 use crate::{
-    app_state::AppState,
+    app_state::{AppState, NextState},
     input::{Input, MouseButton, MousePosition},
     ui::{
-        add_ui_systems_to_schedule, spawn_button, Label, QuitButton, Text, UIContainer, UIRoot,
-        UISize,
-    },
+        add_ui_systems_to_schedule, spawn_button, Label, StateChangeButton, Text, UIContainer,
+        UIRoot, UISize,
+    }, title_menu::build_title_menu_schedule,
 };
 
 pub struct Application {
@@ -46,15 +46,12 @@ impl Application {
 
         let spacer_1 = base.world.push((UISize::Grow(1), ()));
 
-        #[cfg(feature = "singleplayer")]
-        let singleplayer_button = spawn_button(&mut base.world, "Play Solo");
-
         let multiplayer_button = spawn_button(&mut base.world, "Play Online");
         let quit_button = spawn_button(&mut base.world, "Quit");
 
         {
             let mut quit_btn_entry = base.world.entry(quit_button).unwrap();
-            quit_btn_entry.add_component(QuitButton);
+            quit_btn_entry.add_component(StateChangeButton(AppState::Quit));
         }
 
         let spacer_2 = base.world.push((UISize::Grow(1), ()));
@@ -62,7 +59,15 @@ impl Application {
         button_container.add_child(spacer_1);
 
         #[cfg(feature = "singleplayer")]
-        button_container.add_child(singleplayer_button);
+        {
+            let singleplayer_button = spawn_button(&mut base.world, "Play Solo");
+            button_container.add_child(singleplayer_button);
+
+            {
+                let mut splayer_btn_entry = base.world.entry(singleplayer_button).unwrap();
+                splayer_btn_entry.add_component(StateChangeButton(AppState::InGame));
+            }
+        }
 
         button_container.add_child(multiplayer_button);
         button_container.add_child(quit_button);
@@ -99,9 +104,10 @@ impl Application {
     pub fn empty() -> Self {
         let world = World::default();
         let mut resources = Resources::default();
-        let schedule = build_schedule();
+        let schedule = build_title_menu_schedule();
 
         resources.insert(AppState::MainMenu);
+        resources.insert(NextState(None));
         resources.insert(MousePosition(Vec2::new(0.0, 0.0)));
         resources.insert::<Input<MouseButton>>(Input::default());
 
@@ -121,7 +127,8 @@ impl Application {
                 self.schedule.execute(&mut self.world, &mut self.resources);
             }
             AppState::InGame => {
-                unimplemented!()
+                drop(app_state);
+                self.schedule.execute(&mut self.world, &mut self.resources);
             }
             AppState::Quit => {
                 self.keep_running = false;
@@ -181,15 +188,3 @@ impl Application {
     }
 }
 
-fn build_schedule() -> Schedule {
-    let mut builder = Schedule::builder();
-    builder.add_thread_local(clear_screen_system());
-    builder.flush();
-    add_ui_systems_to_schedule(&mut builder);
-    builder.build()
-}
-
-#[system]
-fn clear_screen() {
-    clear_background(BLACK);
-}

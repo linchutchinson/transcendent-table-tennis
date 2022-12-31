@@ -4,10 +4,8 @@ use legion::{
     *,
 };
 use macroquad::{
-    prelude::{
-        is_mouse_button_down, is_mouse_button_pressed, Color, Rect, Vec2, BLUE, DARKBLUE, WHITE, RED,
-    },
-    shapes::{draw_circle, draw_line, draw_rectangle, draw_rectangle_lines},
+    prelude::{Color, Rect, Vec2, BLUE, DARKBLUE, WHITE},
+    shapes::{draw_circle, draw_line, draw_rectangle},
     text::{draw_text, measure_text},
     window::{screen_height, screen_width},
 };
@@ -16,7 +14,7 @@ use macroquad::{
 use macroquad::{prelude::RED, shapes::draw_rectangle_lines};
 
 use crate::{
-    app_state::AppState,
+    app_state::{AppState, NextState},
     input::{Input, MouseButton, MousePosition},
 };
 
@@ -87,7 +85,7 @@ impl Button {
     }
 }
 
-pub struct QuitButton;
+pub struct StateChangeButton(pub AppState);
 
 #[derive(PartialEq)]
 pub enum UIState {
@@ -384,13 +382,17 @@ pub fn spawn_button(ecs: &mut World, label: &str) -> Entity {
 fn handle_button_clicked(
     rect: &Rect,
     _: &Button,
-    _: &QuitButton,
-    #[resource] app_state: &mut AppState,
+    new_state: &StateChangeButton,
+    #[resource] next_state: &mut NextState,
     #[resource] mouse_pos: &MousePosition,
     #[resource] mouse_btns: &Input<MouseButton>,
 ) {
-    if mouse_btns.is_just_pressed(MouseButton::Left) && rect.contains(mouse_pos.0) {
-        *app_state = AppState::Quit;
+    let next_state_open = next_state.0.is_none();
+    if mouse_btns.is_just_pressed(MouseButton::Left)
+        && rect.contains(mouse_pos.0)
+        && next_state_open
+    {
+        next_state.0 = Some(new_state.0);
     }
 }
 
