@@ -5,18 +5,17 @@ use legion::{
 };
 use macroquad::{
     prelude::{
-        is_mouse_button_down, is_mouse_button_pressed, mouse_position, Color, Rect, Vec2,
-        BLUE, DARKBLUE, WHITE,
+        is_mouse_button_down, is_mouse_button_pressed, Color, Rect, Vec2, BLUE, DARKBLUE, WHITE,
     },
-    shapes::{draw_line, draw_rectangle, draw_circle},
+    shapes::{draw_circle, draw_line, draw_rectangle},
     text::{draw_text, measure_text},
     window::{screen_height, screen_width},
 };
 
 #[cfg(feature = "debug_ui")]
-use macroquad::{shapes::draw_rectangle_lines, prelude::RED};
+use macroquad::{prelude::RED, shapes::draw_rectangle_lines};
 
-use crate::app_state::AppState;
+use crate::{app_state::AppState, input::{MousePosition, Input, MouseButton}};
 
 /// The root rect that contains all further UI Containers
 /// for a layout. Used in conjunction with UIContainer and
@@ -88,7 +87,7 @@ impl Button {
 pub struct QuitButton;
 
 #[derive(PartialEq)]
-enum UIState {
+pub enum UIState {
     Normal,
     Hover,
     Click,
@@ -173,13 +172,11 @@ fn calculate_and_apply_child_ui_sizes(
         .collect();
 
     let (constant_used_space, flex_units): (f32, usize) =
-        size_info
-            .iter()
-            .fold((0.0, 0), |acc, (s, _)| match s {
-                //TODO: When vertical constraints are implemented they have to be taken into account here.
-                UISize::Constant(s) => (acc.0 + *s, acc.1),
-                UISize::Grow(units) => (acc.0, acc.1 + *units),
-            });
+        size_info.iter().fold((0.0, 0), |acc, (s, _)| match s {
+            //TODO: When vertical constraints are implemented they have to be taken into account here.
+            UISize::Constant(s) => (acc.0 + *s, acc.1),
+            UISize::Grow(units) => (acc.0, acc.1 + *units),
+        });
 
     let inner_rect = Rect::new(
         container_rect.x + container.margin,
@@ -257,17 +254,15 @@ fn draw_centered_text(rect: &Rect, text: &str, font_size: f32) {
 }
 
 #[system(for_each)]
-fn update_button_state(rect: &Rect, button: &mut Button) {
-    let mouse_pos = mouse_position();
-
-    if is_mouse_button_down(macroquad::prelude::MouseButton::Left) && button.state == UIState::Click
+fn update_button_state(rect: &Rect, button: &mut Button, #[resource] mouse_pos: &MousePosition, #[resource] mouse_btns: &Input<MouseButton>) {
+    if mouse_btns.is_pressed(MouseButton::Left) && button.state == UIState::Click
     {
         // Don't change state.
     } else {
-        if rect.contains(Vec2::new(mouse_pos.0, mouse_pos.1)) {
-            if is_mouse_button_pressed(macroquad::prelude::MouseButton::Left) {
+        if rect.contains(Vec2::new(mouse_pos.0.x, mouse_pos.0.y)) {
+            if mouse_btns.is_just_pressed(MouseButton::Left) {
                 button.state = UIState::Click;
-                button.click_pos = Vec2::new(mouse_pos.0, mouse_pos.1);
+                button.click_pos = mouse_pos.0;
                 button.click_effect_progress = 0.0;
             } else {
                 button.state = UIState::Hover;
@@ -292,7 +287,12 @@ fn update_button_state(rect: &Rect, button: &mut Button) {
 }
 
 #[system(for_each)]
-fn draw_buttons(rect: &Rect, button: &Button, text: Option<&Text>) {
+fn draw_buttons(
+    rect: &Rect,
+    button: &Button,
+    text: Option<&Text>,
+    #[resource] mouse_position: &MousePosition,
+) {
     draw_rectangle(rect.x, rect.y, rect.w, rect.h, BLUE);
 
     let overlay_width = rect.w * ease_in_out_sine(button.transition);
@@ -324,20 +324,40 @@ fn draw_buttons(rect: &Rect, button: &Button, text: Option<&Text>) {
     }
 
     if button.state == UIState::Hover || button.state == UIState::Click {
-        let mouse_pos = mouse_position();
+        let mouse_pos = mouse_position.0;
 
         //TODO: Figure out how to do this with shaders so it cuts out past the button's rect.
         let mouse_hover_circle_radius = 64.0;
-        draw_circle(mouse_pos.0, mouse_pos.1, mouse_hover_circle_radius, Color::new(0.0, 0.0, 0.0, 0.05));
-        draw_circle(mouse_pos.0, mouse_pos.1, mouse_hover_circle_radius * 0.5, Color::new(0.0, 0.0, 0.0, 0.05));
-        draw_circle(mouse_pos.0, mouse_pos.1, mouse_hover_circle_radius * 0.25, Color::new(0.0, 0.0, 0.0, 0.05));
+        draw_circle(
+            mouse_pos.x,
+            mouse_pos.y,
+            mouse_hover_circle_radius,
+            Color::new(0.0, 0.0, 0.0, 0.05),
+        );
+        draw_circle(
+            mouse_pos.x,
+            mouse_pos.y,
+            mouse_hover_circle_radius * 0.5,
+            Color::new(0.0, 0.0, 0.0, 0.05),
+        );
+        draw_circle(
+            mouse_pos.x,
+            mouse_pos.y,
+            mouse_hover_circle_radius * 0.25,
+            Color::new(0.0, 0.0, 0.0, 0.05),
+        );
     }
 
     let click_effect_alpha = 1.0 - ease_in_out_sine(button.click_effect_progress);
     let click_effect_color = Color::new(0.0, 0.0, 0.7, click_effect_alpha);
     let click_effect_radius = ease_in_out_sine(button.click_effect_progress) * 64.0;
 
-    draw_circle(button.click_pos.x, button.click_pos.y, click_effect_radius, click_effect_color);
+    draw_circle(
+        button.click_pos.x,
+        button.click_pos.y,
+        click_effect_radius,
+        click_effect_color,
+    );
 }
 
 pub fn spawn_button(ecs: &mut World, label: &str) -> Entity {
@@ -352,9 +372,16 @@ pub fn spawn_button(ecs: &mut World, label: &str) -> Entity {
 }
 
 #[system(for_each)]
-fn handle_button_clicked(rect: &Rect, _: &Button, _: &QuitButton, #[resource] app_state: &mut AppState) {
-    let mouse_pos = mouse_position();
-    if is_mouse_button_pressed(macroquad::prelude::MouseButton::Left) && rect.contains(Vec2::new(mouse_pos.0, mouse_pos.1)) {
+fn handle_button_clicked(
+    rect: &Rect,
+    _: &Button,
+    _: &QuitButton,
+    #[resource] app_state: &mut AppState,
+    #[resource] mouse_pos: &MousePosition,
+    #[resource] mouse_btns: &Input<MouseButton>,
+) {
+    if mouse_btns.is_just_pressed(MouseButton::Left) && rect.contains(mouse_pos.0)
+    {
         *app_state = AppState::Quit;
     }
 }
