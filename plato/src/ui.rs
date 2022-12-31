@@ -5,9 +5,9 @@ use legion::{
 };
 use macroquad::{
     prelude::{
-        is_mouse_button_down, is_mouse_button_pressed, Color, Rect, Vec2, BLUE, DARKBLUE, WHITE,
+        is_mouse_button_down, is_mouse_button_pressed, Color, Rect, Vec2, BLUE, DARKBLUE, WHITE, RED,
     },
-    shapes::{draw_circle, draw_line, draw_rectangle},
+    shapes::{draw_circle, draw_line, draw_rectangle, draw_rectangle_lines},
     text::{draw_text, measure_text},
     window::{screen_height, screen_width},
 };
@@ -248,8 +248,10 @@ fn draw_centered_text(rect: &Rect, text: &str, font_size: f32) {
     let (x, y) = {
         let text_dims = measure_text(text, None, font_size as u16, 1.0);
         let center = rect.center();
+
         let x = center.x - text_dims.width * 0.5;
-        let y = center.y;
+        let y = center.y + text_dims.height * 0.4;
+
         (x, y)
     };
 

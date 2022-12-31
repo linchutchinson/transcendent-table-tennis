@@ -1,4 +1,5 @@
 pub enum AppState {
-    Run,
+    MainMenu,
+    InGame,
     Quit,
 }

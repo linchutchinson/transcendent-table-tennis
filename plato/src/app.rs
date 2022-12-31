@@ -46,7 +46,10 @@ impl Application {
 
         let spacer_1 = base.world.push((UISize::Grow(1), ()));
 
-        let play_button = spawn_button(&mut base.world, "Play");
+        #[cfg(feature = "singleplayer")]
+        let singleplayer_button = spawn_button(&mut base.world, "Play Solo");
+
+        let multiplayer_button = spawn_button(&mut base.world, "Play Online");
         let quit_button = spawn_button(&mut base.world, "Quit");
 
         {
@@ -57,7 +60,11 @@ impl Application {
         let spacer_2 = base.world.push((UISize::Grow(1), ()));
 
         button_container.add_child(spacer_1);
-        button_container.add_child(play_button);
+
+        #[cfg(feature = "singleplayer")]
+        button_container.add_child(singleplayer_button);
+
+        button_container.add_child(multiplayer_button);
         button_container.add_child(quit_button);
         button_container.add_child(spacer_2);
 
@@ -94,7 +101,7 @@ impl Application {
         let mut resources = Resources::default();
         let schedule = build_schedule();
 
-        resources.insert(AppState::Run);
+        resources.insert(AppState::MainMenu);
         resources.insert(MousePosition(Vec2::new(0.0, 0.0)));
         resources.insert::<Input<MouseButton>>(Input::default());
 
@@ -109,9 +116,12 @@ impl Application {
     pub fn tick(&mut self) {
         let app_state = self.resources.get::<AppState>().unwrap();
         match *app_state {
-            AppState::Run => {
+            AppState::MainMenu => {
                 drop(app_state);
                 self.schedule.execute(&mut self.world, &mut self.resources);
+            }
+            AppState::InGame => {
+                unimplemented!()
             }
             AppState::Quit => {
                 self.keep_running = false;
