@@ -30,7 +30,7 @@ async fn test_quit_game() {
     let running_at_start = app.keep_running;
     app.click_pos(Vec2::new(quit_rect.x, quit_rect.y));
 
-    for _ in 0..10 {
+    for _ in 0..60 {
         app.tick();
         next_frame().await
     }
