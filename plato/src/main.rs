@@ -1,14 +1,18 @@
 mod ui;
+mod app_state;
 
+use app_state::AppState;
 use legion::*;
 use macroquad::prelude::*;
-use ui::{add_ui_systems_to_schedule, spawn_button, Label, UIContainer, UIRoot, UISize};
+use ui::{add_ui_systems_to_schedule, spawn_button, Label, UIContainer, UIRoot, UISize, QuitButton};
 
 #[macroquad::main("Transcendent Table Tennis")]
 async fn main() {
     let mut world = World::default();
     let mut resources = Resources::default();
     let mut schedule = build_schedule();
+
+    resources.insert(AppState::Run);
 
     let mut root_container = UIContainer::empty();
 
@@ -28,6 +32,12 @@ async fn main() {
 
     let play_button = spawn_button(&mut world, "Play");
     let quit_button = spawn_button(&mut world, "Quit");
+
+    {
+        let mut quit_btn_entry = world.entry(quit_button).unwrap();
+        quit_btn_entry.add_component(QuitButton);
+    }
+
     let spacer_2 = world.push((UISize::Grow(1), ()));
 
     button_container.add_child(spacer_1);
@@ -56,8 +66,20 @@ async fn main() {
     root_container.add_child(c2);
 
     world.push((UIRoot, root_container, Rect::new(0.0, 0.0, 0.0, 0.0)));
-    loop {
-        schedule.execute(&mut world, &mut resources);
+
+    let mut keep_running = true;
+    while keep_running {
+        let app_state = resources.get::<AppState>().unwrap();
+
+        match *app_state {
+            AppState::Run => {
+                drop(app_state);
+                schedule.execute(&mut world, &mut resources);
+            },
+            AppState::Quit => {
+                keep_running = false;
+            },
+        }
 
         next_frame().await
     }

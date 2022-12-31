@@ -16,6 +16,8 @@ use macroquad::{
 #[cfg(feature = "debug_ui")]
 use macroquad::{shapes::draw_rectangle_lines, prelude::RED};
 
+use crate::app_state::AppState;
+
 /// The root rect that contains all further UI Containers
 /// for a layout. Used in conjunction with UIContainer and
 /// Rect.
@@ -83,6 +85,8 @@ impl Button {
     }
 }
 
+pub struct QuitButton;
+
 #[derive(PartialEq)]
 enum UIState {
     Normal,
@@ -105,6 +109,7 @@ pub fn add_ui_systems_to_schedule(builder: &mut Builder) {
         .add_system(layout_ui_system())
         .flush()
         .add_system(update_button_state_system())
+        .add_system(handle_button_clicked_system())
         .flush();
 
     #[cfg(feature = "debug_ui")]
@@ -344,6 +349,14 @@ pub fn spawn_button(ecs: &mut World, label: &str) -> Entity {
         Text(label.to_string()),
         UIState::Normal,
     ))
+}
+
+#[system(for_each)]
+fn handle_button_clicked(rect: &Rect, _: &Button, _: &QuitButton, #[resource] app_state: &mut AppState) {
+    let mouse_pos = mouse_position();
+    if is_mouse_button_pressed(macroquad::prelude::MouseButton::Left) && rect.contains(Vec2::new(mouse_pos.0, mouse_pos.1)) {
+        *app_state = AppState::Quit;
+    }
 }
 
 fn ease_in_out_sine(x: f32) -> f32 {
