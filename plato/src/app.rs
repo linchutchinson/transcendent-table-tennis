@@ -10,10 +10,11 @@ use macroquad::{
 use crate::{
     app_state::{AppState, NextState},
     input::{Input, MouseButton, MousePosition},
+    title_menu::{build_title_menu_schedule, initialize_main_menu_entities},
     ui::{
         add_ui_systems_to_schedule, spawn_button, Label, StateChangeButton, Text, UIContainer,
         UIRoot, UISize,
-    }, title_menu::build_title_menu_schedule,
+    },
 };
 
 pub struct Application {
@@ -28,75 +29,7 @@ impl Application {
         let mut base = Application::empty();
 
         // Build Main Menu UI
-        let mut root_container = UIContainer::empty();
-
-        let c1 = base.world.push((
-            Rect::new(10.0, 10.0, 20.0, 20.0),
-            UISize::Grow(1),
-            Label::new("Transcendent Table Tennis".to_string(), 32.0),
-        ));
-
-        let mut child_container = UIContainer::empty();
-
-        let cc1 = base
-            .world
-            .push((Rect::new(200.0, 20.0, 10.0, 100.0), UISize::Grow(1)));
-
-        let mut button_container = UIContainer::empty();
-
-        let spacer_1 = base.world.push((UISize::Grow(1), ()));
-
-        let multiplayer_button = spawn_button(&mut base.world, "Play Online");
-        let quit_button = spawn_button(&mut base.world, "Quit");
-
-        {
-            let mut quit_btn_entry = base.world.entry(quit_button).unwrap();
-            quit_btn_entry.add_component(StateChangeButton(AppState::Quit));
-        }
-
-        let spacer_2 = base.world.push((UISize::Grow(1), ()));
-
-        button_container.add_child(spacer_1);
-
-        #[cfg(feature = "singleplayer")]
-        {
-            let singleplayer_button = spawn_button(&mut base.world, "Play Solo");
-            button_container.add_child(singleplayer_button);
-
-            {
-                let mut splayer_btn_entry = base.world.entry(singleplayer_button).unwrap();
-                splayer_btn_entry.add_component(StateChangeButton(AppState::InGame));
-            }
-        }
-
-        button_container.add_child(multiplayer_button);
-        button_container.add_child(quit_button);
-        button_container.add_child(spacer_2);
-
-        let button_section = base.world.push((
-            Rect::new(200.0, 20.0, 10.0, 100.0),
-            UISize::Grow(2),
-            button_container,
-        ));
-        let cc3 = base
-            .world
-            .push((Rect::new(200.0, 20.0, 10.0, 100.0), UISize::Grow(2)));
-
-        child_container.add_child(cc1);
-        child_container.add_child(button_section);
-        child_container.add_child(cc3);
-
-        let c2 = base.world.push((
-            Rect::new(200.0, 20.0, 10.0, 100.0),
-            UISize::Grow(9),
-            child_container,
-        ));
-
-        root_container.add_child(c1);
-        root_container.add_child(c2);
-
-        base.world
-            .push((UIRoot, root_container, Rect::new(0.0, 0.0, 0.0, 0.0)));
+        initialize_main_menu_entities(&mut base.world);
 
         base
     }
@@ -187,4 +120,3 @@ impl Application {
         mouse_btns.press(MouseButton::Left);
     }
 }
-

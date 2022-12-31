@@ -1,8 +1,8 @@
 mod app;
 mod app_state;
 mod input;
-mod ui;
 mod title_menu;
+mod ui;
 
 pub use app::Application;
 use macroquad::window::next_frame;
