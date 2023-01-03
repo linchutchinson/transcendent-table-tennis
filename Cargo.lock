@@ -654,6 +654,10 @@ dependencies = [
 [[package]]
 name = "server"
 version = "0.1.0"
+dependencies = [
+ "client",
+ "common",
+]
 
 [[package]]
 name = "server-cli"

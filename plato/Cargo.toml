@@ -4,8 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["singleplayer"]
+default = ["singleplayer", "client_host"]
 singleplayer = ["dep:server"]
+client_host = ["dep:server"]
 debug_ui = []
 
 [dependencies]
