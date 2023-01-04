@@ -3,16 +3,6 @@ name = "plato"
 version = "0.1.0"
 edition = "2021"
 
-[features]
-default = ["singleplayer", "client_host"]
-singleplayer = ["dep:server"]
-client_host = ["dep:server"]
-debug_ui = []
-
 [dependencies]
-common = { path = "../common" }
-client = { path = "../client" }
-server = { path = "../server", optional = true }
-
 macroquad = "0.3"
 legion = "0.4"
