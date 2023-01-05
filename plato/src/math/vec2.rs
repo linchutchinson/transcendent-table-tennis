@@ -34,6 +34,12 @@ impl std::ops::Add for Vec2 {
     }
 }
 
+impl std::ops::AddAssign for Vec2 {
+    fn add_assign(&mut self, other: Self) {
+        *self = *self + other;
+    }
+}
+
 impl std::ops::Sub for Vec2 {
     type Output = Self;
 
@@ -42,19 +48,27 @@ impl std::ops::Sub for Vec2 {
     }
 }
 
-impl std::ops::Div for Vec2 {
-    type Output = Self;
-
-    fn div(self, rhs: Self) -> Self::Output {
-        Self::new(self.x / rhs.x, self.y / rhs.y)
-    }
-}
-
 impl std::ops::Mul for Vec2 {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self {
         Self::new(self.x * rhs.x, self.y * rhs.y)
+    }
+}
+
+impl std::ops::Mul<f32> for Vec2 {
+    type Output = Self;
+
+    fn mul(self, rhs: f32) -> Self {
+        Self::new(self.x * rhs, self.y * rhs)
+    }
+}
+
+impl std::ops::Div for Vec2 {
+    type Output = Self;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        Self::new(self.x / rhs.x, self.y / rhs.y)
     }
 }
 

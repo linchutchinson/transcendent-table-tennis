@@ -2,11 +2,21 @@ mod colors;
 mod math;
 use colors::*;
 use macroquad::{
-    prelude::is_quit_requested,
+    prelude::{is_key_down, is_quit_requested, KeyCode},
     shapes::{draw_circle, draw_rectangle},
     window::{clear_background, screen_height, screen_width},
 };
 use math::{Rect, Vec2};
+
+// TODO: These consts are gonna move.
+const PADDLE_HEIGHT: f32 = 200.0;
+const PADDLE_WIDTH: f32 = 50.0;
+const PLAYER_X: f32 = 100.0;
+const BOT_X: f32 = 1820.0;
+const PADDLE_SPEED: f32 = 8.0;
+
+const BALL_SPEED: f32 = 10.0;
+const BALL_RADIUS: f32 = 24.0;
 
 struct PlayArea(Rect);
 
@@ -52,13 +62,21 @@ impl PlayArea {
 
         game_rect.project_point(&self.0, pos)
     }
+
+    fn game_scale_to_screen_scale(&self, val: f32) -> f32 {
+        let ratio = self.0.size.x / 1920.0;
+
+        val * ratio
+    }
 }
 
 pub struct Application {
     pub is_running: bool,
     player_y: f32,
+    player_dir: f32,
     bot_y: f32,
     ball_pos: Vec2,
+    ball_velocity: Vec2,
 }
 
 impl Application {
@@ -66,16 +84,67 @@ impl Application {
         Self {
             is_running: true,
             player_y: 400.0,
+            player_dir: 0.0,
             bot_y: 400.0,
             ball_pos: Vec2::new(200.0, 200.0),
+            //TODO This needs to be properly normalized.
+            ball_velocity: Vec2::new(1.0, 1.0) * BALL_SPEED,
         }
     }
 
-    pub fn handle_input(&mut self) {}
+    pub fn handle_input(&mut self) {
+        let pressing_up = is_key_down(KeyCode::W);
+        let pressing_down = is_key_down(KeyCode::S);
+
+        let dir = match (pressing_up, pressing_down) {
+            (true, false) => -1.0,
+            (false, true) => 1.0,
+            _ => 0.0,
+        };
+
+        self.player_dir = dir;
+    }
 
     pub fn tick(&mut self) {
         if is_quit_requested() {
             self.is_running = false;
+        }
+
+        self.player_y += self.player_dir * PADDLE_SPEED;
+
+        self.ball_pos += self.ball_velocity;
+
+        // Top/Bottom Boundary Collisions
+        if self.ball_pos.y >= 1080.0 - BALL_RADIUS || self.ball_pos.y <= BALL_RADIUS {
+            self.ball_velocity.y *= -1.0;
+        }
+
+        // Paddle Collisions
+        if self.ball_velocity.x > 0.0 {
+            // Bot Paddle
+            if self.ball_pos.x < BOT_X && self.ball_pos.x + BALL_RADIUS >= BOT_X {
+                let dist_to_paddle = (self.ball_pos.y - self.bot_y).abs();
+                let hits_paddle = dist_to_paddle < PADDLE_HEIGHT + BALL_RADIUS;
+
+                if hits_paddle {
+                    self.ball_velocity.x *= -1.0;
+                }
+            }
+        } else {
+            // Player Paddle
+            if self.ball_pos.x > PLAYER_X && self.ball_pos.x - BALL_RADIUS <= PLAYER_X {
+                let dist_to_paddle = (self.ball_pos.y - self.player_y).abs();
+                let hits_paddle = dist_to_paddle < PADDLE_HEIGHT + BALL_RADIUS;
+
+                if hits_paddle {
+                    self.ball_velocity.x *= -1.0;
+                }
+            }
+        }
+
+        if self.ball_pos.x >= 1920.0 + BALL_RADIUS || self.ball_pos.x <= -BALL_RADIUS {
+            // Ball has scored. Reset Position.
+            self.ball_pos = Vec2::new(1920.0, 1080.0) * 0.5;
         }
     }
 
@@ -92,27 +161,34 @@ impl Application {
             PLAY_AREA_COLOR,
         );
 
-        //TODO: These consts are gonna move.
-        const PADDLE_HEIGHT: f32 = 100.0;
-        const PADDLE_WIDTH: f32 = 50.0;
-        const PLAYER_X: f32 = 100.0;
-        const BOT_X: f32 = 600.0;
+        let scaled_paddle_height = play_area.game_scale_to_screen_scale(PADDLE_HEIGHT);
+        let scaled_paddle_width = play_area.game_scale_to_screen_scale(PADDLE_WIDTH);
+        let scaled_paddle_size = Vec2::new(scaled_paddle_width, scaled_paddle_height);
 
-        fn draw_paddle_from_center(pos: Vec2) {
-            let left = pos.x - (PADDLE_WIDTH * 0.5);
-            let top = pos.y - (PADDLE_HEIGHT * 0.5);
+        fn draw_paddle_from_center(pos: Vec2, size: Vec2) {
+            let left = pos.x - (size.x * 0.5);
+            let top = pos.y - (size.y * 0.5);
 
-            draw_rectangle(left, top, PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_COLOR);
+            draw_rectangle(left, top, size.x, size.y, PADDLE_COLOR);
         }
 
-        let player_screen_pos =
-            play_area.game_pos_to_screen_space(Vec2::new(PLAYER_X, self.player_y));
-        draw_paddle_from_center(player_screen_pos);
+        // NOTE We shift the player and bot paddles so that they line up exactly with the boundary lines used
+        // for collision checking.
+        let player_screen_pos = play_area
+            .game_pos_to_screen_space(Vec2::new(PLAYER_X - PADDLE_WIDTH * 0.5, self.player_y));
+        draw_paddle_from_center(player_screen_pos, scaled_paddle_size);
 
-        let bot_screen_pos = play_area.game_pos_to_screen_space(Vec2::new(BOT_X, self.bot_y));
-        draw_paddle_from_center(bot_screen_pos);
+        let bot_screen_pos =
+            play_area.game_pos_to_screen_space(Vec2::new(BOT_X + PADDLE_WIDTH * 0.5, self.bot_y));
+        draw_paddle_from_center(bot_screen_pos, scaled_paddle_size);
 
-        const BALL_RADIUS: f32 = 24.0;
-        draw_circle(self.ball_pos.x, self.ball_pos.y, BALL_RADIUS, BALL_COLOR);
+        let ball_screen_pos = play_area.game_pos_to_screen_space(self.ball_pos);
+        let scaled_ball_radius = play_area.game_scale_to_screen_scale(BALL_RADIUS);
+        draw_circle(
+            ball_screen_pos.x,
+            ball_screen_pos.y,
+            scaled_ball_radius,
+            BALL_COLOR,
+        );
     }
 }
