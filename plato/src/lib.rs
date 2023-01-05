@@ -126,6 +126,9 @@ impl Application {
         self.bot_y += bot_dir * PADDLE_SPEED * 0.8;
 
         self.player_y += self.player_dir * PADDLE_SPEED;
+        self.player_y = self
+            .player_y
+            .clamp(PADDLE_HEIGHT * 0.5, 1080.0 - (PADDLE_HEIGHT * 0.5));
 
         self.ball_pos += self.ball_velocity;
 
