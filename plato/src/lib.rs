@@ -110,6 +110,16 @@ impl Application {
             self.is_running = false;
         }
 
+        let bot_dir = if self.ball_pos.y < self.bot_y {
+            -1.0
+        } else if self.ball_pos.y > self.bot_y {
+            1.0
+        } else {
+            0.0
+        };
+
+        self.bot_y += bot_dir * PADDLE_SPEED * 0.8;
+
         self.player_y += self.player_dir * PADDLE_SPEED;
 
         self.ball_pos += self.ball_velocity;
@@ -124,9 +134,11 @@ impl Application {
             // Bot Paddle
             if self.ball_pos.x < BOT_X && self.ball_pos.x + BALL_RADIUS >= BOT_X {
                 let dist_to_paddle = (self.ball_pos.y - self.bot_y).abs();
-                let hits_paddle = dist_to_paddle < PADDLE_HEIGHT + BALL_RADIUS;
+                println!("{}", dist_to_paddle);
+                let hits_paddle = dist_to_paddle < (PADDLE_HEIGHT * 0.5) + BALL_RADIUS;
 
                 if hits_paddle {
+                    println!("Hit!");
                     self.ball_velocity.x *= -1.0;
                 }
             }
