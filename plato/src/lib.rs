@@ -4,6 +4,7 @@ use colors::*;
 use macroquad::{
     prelude::{is_key_down, is_quit_requested, KeyCode},
     shapes::{draw_circle, draw_rectangle},
+    text::draw_text,
     window::{clear_background, screen_height, screen_width},
 };
 use math::{Rect, Vec2};
@@ -77,6 +78,8 @@ pub struct Application {
     bot_y: f32,
     ball_pos: Vec2,
     ball_velocity: Vec2,
+    player_score: i32,
+    bot_score: i32,
 }
 
 impl Application {
@@ -89,6 +92,8 @@ impl Application {
             ball_pos: Vec2::new(200.0, 200.0),
             //TODO This needs to be properly normalized.
             ball_velocity: Vec2::new(1.0, 1.0) * BALL_SPEED,
+            player_score: 0,
+            bot_score: 0,
         }
     }
 
@@ -155,6 +160,12 @@ impl Application {
         if self.ball_pos.x >= 1920.0 + BALL_RADIUS || self.ball_pos.x <= -BALL_RADIUS {
             // Ball has scored. Reset Position.
             self.ball_pos = Vec2::new(1920.0, 1080.0) * 0.5;
+
+            if self.ball_pos.x < 0.0 {
+                self.bot_score += 1;
+            } else {
+                self.player_score += 1;
+            }
         }
     }
 
@@ -199,6 +210,14 @@ impl Application {
             ball_screen_pos.y,
             scaled_ball_radius,
             BALL_COLOR,
+        );
+
+        draw_text(
+            &format!("{} | {}", self.player_score, self.bot_score),
+            0.0,
+            128.0,
+            64.0,
+            TEXT_COLOR,
         );
     }
 }
